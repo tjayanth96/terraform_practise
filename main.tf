@@ -5,7 +5,7 @@ provider "aws" {
 resource "aws_instance" "machine" {
     ami = "ami-0230bd60aa48260c6"
     instance_type = "t2.micro"
-   vpc_security_group_ids = ["aws_security_group.shield.id"]
+   vpc_security_group_ids = ["${aws_security_group.shield.id}"]
     tags = { Name = "terraform_testing"}
     user_data_replace_on_change = true
     user_data = <<-EOF
