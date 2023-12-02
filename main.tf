@@ -10,7 +10,7 @@ resource "aws_instance" "machine" {
     user_data_replace_on_change = true
     user_data = <<-EOF
                    #!/bin/bash
-                   echo "Hello, World" > index.xhtml
+                   echo "Hello, World" && sudo install httpd && sudo systemctl enable httpd > index.xhtml
                    nohup busybox httpd -f -p 8080 &
                    EOF 
 }
@@ -18,10 +18,36 @@ resource "aws_instance" "machine" {
 resource "aws_security_group" "shield" {
     name = "Terraform_SG"
     ingress {
-        from_port = "8080"
-        to_port = "8080"
+        from_port = "${var.port}"
+        to_port = "${var.port}"
         protocol = "tcp"
         cidr_blocks = [ "0.0.0.0/0"]         
     }
 }
 
+variable "object_variable_with_one_key_value_as_error" {
+    description = "an example of object variable"
+    type = object({
+                    name = string
+                    age = number
+                    tags = list(string)
+                    enabled = bool
+                 })
+   default = {
+              name = "value1"
+              age = "22"
+              tags = ["a", "b", "c"]
+              enabled = true
+             }
+}
+
+variable "port" {
+    description = "This is for from and to port"
+    type = number
+    default = 8080
+}
+
+output "ip_address" {
+    description = "This is ip address of ec2 machine"
+    value = "${aws_instance.machine.public_ip}"
+}
