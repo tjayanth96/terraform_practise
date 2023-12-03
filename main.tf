@@ -2,18 +2,42 @@ provider "aws" {
     region = "us-east-1"    
 }
 
-resource "aws_instance" "machine" {
-    ami = "ami-0230bd60aa48260c6"
+#resource "aws_instance" "machine" {
+#    ami = "ami-0230bd60aa48260c6"
+#    instance_type = "t2.micro"
+#   vpc_security_group_ids = ["${aws_security_group.shield.id}"]
+#    tags = { Name = "terraform_testing"}
+#    user_data_replace_on_change = true
+#    user_data = <<-EOF
+#                   #!/bin/bash
+#                   echo "Hello, World" && sudo install httpd && sudo systemctl enable httpd > index.xhtml
+#                   nohup busybox httpd -f -p 8080 &
+#                   EOF 
+#}
+
+resource "aws_launch_configuration" "example" {
+    image_id = "ami-0230bd60aa48260c6"
     instance_type = "t2.micro"
-   vpc_security_group_ids = ["${aws_security_group.shield.id}"]
-    tags = { Name = "terraform_testing"}
-    user_data_replace_on_change = true
+    security_groups = ["${aws_security_group.shield.id}"]
     user_data = <<-EOF
                    #!/bin/bash
-                   echo "Hello, World" && sudo install httpd && sudo systemctl enable httpd > index.xhtml
-                   nohup busybox httpd -f -p 8080 &
-                   EOF 
+                   echo "hello && "echo "Hello, World" > index.xhtml
+                   nohup busybox httpd -f -p ${var.port} &
+                   EOF
 }
+
+resource "aws_autoscaling_group" "example" {
+    launch_configuration = aws_launch_configuration.example.name
+    vpc_zone_identifier = "${data.aws_subnets.subnet.ids}"
+    min_size = 2
+    max_size = 10
+    tag {
+    key = "Name"
+    value = "terraform-asg-example"
+    propagate_at_launch = true
+    }
+}
+
 
 resource "aws_security_group" "shield" {
     name = "Terraform_SG"
@@ -47,7 +71,17 @@ variable "port" {
     default = 8080
 }
 
-output "ip_address" {
-    description = "This is ip address of ec2 machine"
-    value = "${aws_instance.machine.public_ip}"
+data "aws_vpc" "ourvpc" {
+    default = true
 }
+
+data "aws_subnets" "subnet" {
+    filter {
+        name = "vpc-id"
+        values = ["${data.aws_vpc.ourvpc.id}"]
+    }
+}
+#output "ip_address" {
+#    description = "This is ip address of ec2 machine"
+#    value = "${aws_instance.machine.public_ip}"
+#}
